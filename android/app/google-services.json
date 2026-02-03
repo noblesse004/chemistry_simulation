@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "301006348168",
+    "project_id": "chemistry-23fcd",
+    "storage_bucket": "chemistry-23fcd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:301006348168:android:af5dc682b11aadb1ff243d",
+        "android_client_info": {
+          "package_name": "com.example.chemistry_simulation"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwvIR6dSjmqIT5EUJgMmaqAKz6CsjGZf4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
