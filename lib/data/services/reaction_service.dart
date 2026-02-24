@@ -7,7 +7,7 @@ class ReactionService {
         "equation": "\$HCl + NaOH \\rightarrow NaCl + H_2O\$",
         "phenomenon": "Phản ứng tỏa nhiệt, không có kết tủa.",
         "color": "transparent",
-        "videoUrl": "https://www.youtube.com/watch?v=HQfXzbZJhgg",
+        "videoPath": "assets/videos/Bazo.mp4",
       };
     }
     // 2. Phản ứng tạo kết tủa: Muối + Axit
@@ -18,7 +18,7 @@ class ReactionService {
             "\$BaCl_2 + H_2SO_4 \\rightarrow BaSO_4 \\downarrow + 2HCl\$",
         "phenomenon": "Xuất hiện kết tủa trắng tinh khiết.",
         "color": "white",
-        "videoUrl": "https://www.youtube.com/watch?v=HQfXzbZJhgg",
+        "videoPath": "assets/videos/snaptik.vn_RaRoH.mp4",
       };
     }
     // 3. Phản ứng nhận biết: Axit + Quỳ tím
@@ -28,9 +28,9 @@ class ReactionService {
         "equation": "Axit làm quỳ tím hóa đỏ",
         "phenomenon": "Giấy quỳ tím chuyển sang màu đỏ rực.",
         "color": "red",
-        "videoUrl": "https://www.youtube.com/watch?v=HQfXzbZJhgg",
+        "imagePath": "assets/images/thi_nghiem_hcl.png",
       };
     }
-    return null; // Không có phản ứng xảy ra
+    return null;
   }
 }

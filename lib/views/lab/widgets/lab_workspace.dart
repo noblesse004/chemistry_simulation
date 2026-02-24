@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:chemistry_simulation/providers/lab_provider.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:video_player/video_player.dart';
 
 class LabWorkspace extends StatefulWidget {
   const LabWorkspace({super.key});
@@ -12,26 +12,22 @@ class LabWorkspace extends StatefulWidget {
 }
 
 class _LabWorkspaceState extends State<LabWorkspace> {
-  YoutubePlayerController? _controller;
+  VideoPlayerController? _videoController;
+  String? _currentVideoPath;
 
-  void _setupController(String? videoUrl) {
-    if (videoUrl == null) return;
-    final videoId = YoutubePlayer.convertUrlToId(videoUrl);
-    if (videoId != null && _controller == null) {
-      _controller = YoutubePlayerController(
-        initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(
-          autoPlay: false,
-          mute: false,
-          disableDragSeek: false,
-        ),
-      );
-    }
+  void _initializeVideo(String videoPath) {
+    if (_currentVideoPath == videoPath) return;
+    _currentVideoPath = videoPath;
+    _videoController?.dispose();
+    _videoController = VideoPlayerController.asset(videoPath)
+      ..initialize().then((_) {
+        setState(() {});
+      });
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _videoController?.dispose();
     super.dispose();
   }
 
@@ -39,99 +35,165 @@ class _LabWorkspaceState extends State<LabWorkspace> {
   Widget build(BuildContext context) {
     final labProvider = context.watch<LabProvider>();
 
-    if (labProvider.currentResult?.videoUrl != null) {
-      _setupController(labProvider.currentResult!.videoUrl);
+    if (labProvider.currentResult?.videoPath != null) {
+      _initializeVideo(labProvider.currentResult!.videoPath!);
+    } else {
+      _videoController?.dispose();
+      _videoController = null;
+      _currentVideoPath = null;
     }
 
-    return YoutubePlayerBuilder(
-      player: YoutubePlayer(
-        controller: _controller ?? YoutubePlayerController(initialVideoId: ""),
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF0D47A1), width: 1.5),
       ),
-      builder: (context, player) {
-        return Container(
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF0D47A1), width: 1.5),
-          ),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Column(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            children: [
+              // 1. Lọ hóa chất (Giữ nguyên)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // 1. Lọ hóa chất
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildBeaker(labProvider.firstChemical, "Chất 1"),
-                      const Icon(Icons.add, color: Colors.grey),
-                      _buildBeaker(labProvider.secondChemical, "Chất 2"),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
+                  _buildBeaker(labProvider.firstChemical, "Chất 1"),
+                  const Icon(Icons.add, color: Colors.grey),
+                  _buildBeaker(labProvider.secondChemical, "Chất 2"),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-                  if (labProvider.currentResult != null) ...[
-                    // 2. Phương trình
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: DefaultTextStyle(
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0D47A1),
-                        ),
-                        child: Math.tex(
-                          labProvider.currentResult!.equation.replaceAll(
-                            r'$',
-                            '',
+              if (labProvider.currentResult != null) ...[
+                // 2. Phương trình
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: DefaultTextStyle(
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0D47A1),
+                    ),
+                    child: Math.tex(
+                      labProvider.currentResult!.equation.replaceAll(r'$', ''),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+                // 3. HIỆN TƯỢNG
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      "✨ Hiện tượng: ${labProvider.currentResult!.phenomenon}",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 15,
+                        fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
+                if (labProvider.currentResult!.imagePath != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        labProvider.currentResult!.imagePath!,
+                        width: 260, // Kích thước bằng với Video cho đồng bộ
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Text("Lỗi tải ảnh"),
+                      ),
+                    ),
+                  ),
+
+                // 4. KHU VỰC VIDEO
+                if (_videoController != null &&
+                    _videoController!.value.isInitialized)
+                  Column(
+                    children: [
+                      Center(
+                        child: SizedBox(
+                          width: 260,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _videoController!.value.isPlaying
+                                    ? _videoController!.pause()
+                                    : _videoController!.play();
+                              });
+                            },
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: AspectRatio(
+                                    aspectRatio:
+                                        _videoController!.value.aspectRatio,
+                                    child: VideoPlayer(_videoController!),
+                                  ),
+                                ),
+                                if (!_videoController!.value.isPlaying)
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black38,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.play_arrow,
+                                      size: 50,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // 3. HIỂN THỊ PLAYER (đã được Builder bảo vệ)
-                    if (labProvider.currentResult!.videoUrl != null &&
-                        _controller != null)
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: player,
-                        ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        "Bấm xem clip thí nghiệm thực tế",
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
                       ),
-
-                    // 4. Hiện tượng
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        labProvider.currentResult!.phenomenon,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                  ] else if (labProvider.firstChemical != null &&
-                      labProvider.secondChemical != null)
-                    const Text(
-                      "Không có phản ứng xảy ra",
-                      style: TextStyle(color: Colors.red),
-                    )
-                  else
-                    const Text(
-                      "Kéo hóa chất vào đây",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                ],
-              ),
-            ),
+                    ],
+                  )
+                else if (labProvider.currentResult!.videoPath != null)
+                  const CircularProgressIndicator(),
+              ] else if (labProvider.firstChemical != null &&
+                  labProvider.secondChemical != null)
+                const Text(
+                  "Không có phản ứng xảy ra",
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              else
+                const Text(
+                  "Kéo hóa chất vào đây",
+                  style: TextStyle(color: Colors.grey),
+                ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 

@@ -1,31 +1,47 @@
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AIService {
-  // THAY THẾ 'YOUR_API_KEY' bằng mã Duy lấy từ Google AI Studio
-  static const String _apiKey = 'YOUR_API_KEY';
+  final String _apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
 
-  final GenerativeModel _model;
+  // 2. Endpoint chuẩn của Groq Cloud
+  static const String _baseUrl =
+      'https://api.groq.com/openai/v1/chat/completions';
 
-  AIService()
-    : _model = GenerativeModel(
-        model: 'gemini-1.5-flash',
-        apiKey: _apiKey,
-        // Thiết lập "Hệ tư tưởng" cho AI để bám sát đề tài Vô cơ lớp 9
-        systemInstruction: Content.system(
-          'Bạn là Chemmy, gia sư ảo của ứng dụng Chemistry Hub. '
-          'Bạn là chuyên gia về Hóa học vô cơ lớp 9, đặc biệt là Axit, Bazơ và Muối. '
-          'Hãy trả lời ngắn gọn, dễ hiểu và luôn kèm theo phương trình hóa học nếu có. '
-          'Nếu học sinh hỏi ngoài phạm vi hóa học, hãy khéo léo từ chối.',
-        ),
-      );
-
-  // Hàm gửi tin nhắn và nhận phản hồi
   Future<String> getChemResponse(String prompt) async {
     try {
-      final content = [Content.text(prompt)];
-      final response = await _model.generateContent(content);
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "model": "llama-3.3-70b-versatile",
+          "messages": [
+            {
+              "role": "system",
+              "content":
+                  "Bạn là Chemmy, gia sư ảo của ứng dụng Chemistry Hub. "
+                  "Bạn là chuyên gia về Hóa học vô cơ lớp 9, đặc biệt là Axit, Bazơ và Muối. "
+                  "Hãy trả lời ngắn gọn, dễ hiểu và luôn kèm theo phương trình hóa học nếu có. "
+                  "Sử dụng LaTeX cho công thức hóa học (ví dụ: \$H_2SO_4\$). "
+                  "Nếu học sinh hỏi ngoài phạm vi hóa học, hãy khéo léo từ chối.",
+            },
+            {"role": "user", "content": prompt},
+          ],
+          "temperature": 0.7,
+          "max_tokens": 1024,
+        }),
+      );
 
-      return response.text ?? 'Chemmy đang bận suy nghĩ một chút, thử lại nhé!';
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        return data['choices'][0]['message']['content'];
+      } else {
+        return 'Lỗi từ Groq (${response.statusCode}): ${response.body}';
+      }
     } catch (e) {
       return 'Lỗi kết nối rồi Duy ơi: $e';
     }

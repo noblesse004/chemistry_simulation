@@ -25,6 +25,7 @@ class LabProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  //4
   // 2. Logic chọn hóa chất
   void selectChemical(ChemicalModel chemical) {
     if (firstChemical == null) {
@@ -56,7 +57,7 @@ class LabProvider with ChangeNotifier {
         phenomenon: staticRes['phenomenon'],
         reactants: [firstChemical!.id, secondChemical!.id],
         resultColor: staticRes['color'] ?? 'transparent',
-        videoUrl: staticRes['videoUrl'],
+        videoPath: staticRes['videoPath'],
         xpAwarded: 50,
       );
     } else {

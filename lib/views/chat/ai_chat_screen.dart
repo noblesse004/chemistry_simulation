@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_colors.dart';
 import '../../providers/ai_chat_provider.dart';
+import 'widgets/math_text.dart';
 
 class AIChatScreen extends StatefulWidget {
   const AIChatScreen({super.key});
@@ -12,21 +12,38 @@ class AIChatScreen extends StatefulWidget {
 
 class _AIChatScreenState extends State<AIChatScreen> {
   final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final chatProvider = Provider.of<AIChatProvider>(context);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
-        title: const Text("Gia sư AI Chemmy"),
-        backgroundColor: Colors.purple, // Màu tím đặc trưng cho AI
+        title: const Text(
+          "Gia sư AI Chemmy",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.purple[700],
+        elevation: 2,
+        centerTitle: true,
       ),
       body: Column(
         children: [
-          // Danh sách tin nhắn
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: chatProvider.messages.length,
               itemBuilder: (context, index) {
@@ -35,8 +52,21 @@ class _AIChatScreenState extends State<AIChatScreen> {
               },
             ),
           ),
-
-          // Thanh nhập liệu
+          if (chatProvider.isTyping)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Chemmy đang soạn bài...",
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    color: Colors.purple[300],
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
           _buildInputArea(chatProvider),
         ],
       ),
@@ -44,25 +74,34 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   Widget _buildChatBubble(Message msg) {
+    bool isUser = msg.isUser;
     return Align(
-      alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: msg.isUser ? AppColors.primary : Colors.grey[200],
-          borderRadius: BorderRadius.circular(15).copyWith(
-            bottomRight: msg.isUser
-                ? const Radius.circular(0)
-                : const Radius.circular(15),
-            bottomLeft: msg.isUser
-                ? const Radius.circular(15)
-                : const Radius.circular(0),
-          ),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(14),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.82,
         ),
-        child: Text(
-          msg.text,
-          style: TextStyle(color: msg.isUser ? Colors.white : Colors.black87),
+        decoration: BoxDecoration(
+          color: isUser ? Colors.purple[600] : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(isUser ? 18 : 0),
+            bottomRight: Radius.circular(isUser ? 0 : 18),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: MathText(
+          text: msg.text,
+          textColor: isUser ? Colors.white : Colors.black87,
         ),
       ),
     );
@@ -70,26 +109,53 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   Widget _buildInputArea(AIChatProvider provider) {
     return Container(
-      padding: const EdgeInsets.all(8),
-      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        10,
+        16,
+        30,
+      ), // Padding dưới cao hơn cho iOS
+      decoration: const BoxDecoration(color: Colors.white),
       child: Row(
         children: [
           Expanded(
-            child: TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                hintText: "Hỏi Chemmy về hóa học...",
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 15),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: TextField(
+                controller: _controller,
+                maxLines: null,
+                decoration: const InputDecoration(
+                  hintText: "Hỏi Chemmy...",
+                  border: InputBorder.none,
+                ),
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.send, color: Colors.purple),
-            onPressed: () {
-              provider.sendMessage(_controller.text);
-              _controller.clear();
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () {
+              if (_controller.text.trim().isNotEmpty) {
+                provider.sendMessage(_controller.text);
+                _controller.clear();
+                Future.delayed(
+                  const Duration(milliseconds: 200),
+                  _scrollToBottom,
+                );
+              }
             },
+            child: CircleAvatar(
+              backgroundColor: Colors.purple[700],
+              child: const Icon(
+                Icons.send_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
           ),
         ],
       ),

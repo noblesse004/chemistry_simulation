@@ -31,7 +31,6 @@ class AuthService {
           lessonProgress: [],
         );
 
-        // Lưu lên Firestore dùng hàm toMap() của Duy
         await _db.collection('users').doc(user.uid).set(newUser.toMap());
         await _auth.signOut();
       }
